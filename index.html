@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALDO SHOP</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:black;
+color:white;
+}
+
+/* HEADER */
+header{
+text-align:center;
+padding:15px;
+background:#ff4757;
+}
+
+/* TABS */
+.tabs{
+text-align:center;
+margin:10px;
+}
+
+.tabs button{
+padding:6px;
+margin:3px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-size:12px;
+}
+
+/* PRODUCTS GRID */
+.products{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:6px;
+padding:6px;
+}
+
+/* CARD */
+.card{
+background:#111;
+border-radius:8px;
+overflow:hidden;
+}
+
+/* MEDIA */
+.card img,.card video{
+width:100%;
+height:110px;
+object-fit:cover;
+display:block;
+}
+
+/* INFO */
+.info{
+text-align:center;
+padding:6px;
+}
+
+.info h3{
+margin:4px 0;
+font-size:13px;
+}
+
+.price{
+margin:0;
+color:#ff4d4d;
+font-weight:bold;
+font-size:12px;
+}
+
+/* BUY */
+button.buy{
+width:100%;
+padding:6px;
+border:none;
+background:#25D366;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+/* ADMIN */
+.adminBox,.passBox{
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+display:none;
+justify-content:center;
+align-items:center;
+z-index:999;
+}
+
+.passBox{
+background:rgba(0,0,0,0.9);
+}
+
+.passInner{
+background:white;
+color:black;
+padding:20px;
+border-radius:10px;
+}
+
+.adminBox{
+background:white;
+color:black;
+flex-direction:column;
+padding:15px;
+overflow:auto;
+}
+
+input,select{
+width:100%;
+padding:6px;
+margin:5px 0;
+}
+
+/* POPUP */
+#popup{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.9);
+z-index:999;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+padding:10px;
+}
+
+#popupContent{
+max-width:350px;
+width:100%;
+text-align:center;
+background:#111;
+padding:10px;
+border-radius:10px;
+}
+
+#popupContent img,
+#popupContent video{
+width:100%;
+margin:5px 0;
+border-radius:6px;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+.products{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:600px){
+.products{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:400px){
+.products{grid-template-columns:repeat(1,1fr);}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>🛍 ALDO SHOP</h2>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+<button onclick="filter('all')">All</button>
+<button onclick="filter('shoes')">👟 أحذية</button>
+<button onclick="filter('clothes')">👕 ملابس</button>
+<button onclick="filter('watches')">⌚ ساعات</button>
+<button onclick="openAdmin()">⚙️ Admin</button>
+</div>
+
+<div class="products" id="products"></div>
+
+<!-- POPUP -->
+<div id="popup">
+<div id="popupContent"></div>
+<button onclick="closePopup()" style="margin-top:10px;padding:8px;background:red;color:white;border:none;border-radius:5px">
+❌ Close
+</button>
+</div>
+
+<!-- PASSWORD -->
+<div class="passBox" id="passBox">
+<div class="passInner">
+<h3>Password</h3>
+<input type="password" id="pass">
+<button onclick="checkPass()">Enter</button>
+</div>
+</div>
+
+<!-- ADMIN -->
+<div class="adminBox" id="adminBox">
+
+<h2>لوحة التحكم</h2>
+
+<input id="name" placeholder="اسم المنتج">
+<input id="price" placeholder="الثمن">
+
+<select id="category">
+<option value="shoes">👟 أحذية</option>
+<option value="clothes">👕 ملابس</option>
+<option value="watches">⌚ ساعات</option>
+</select>
+
+<input type="file" id="mediaInput" accept="image/*,video/*" multiple>
+
+<button onclick="addProduct()">إضافة منتج</button>
+
+<hr>
+
+<h3>📦 Admin</h3>
+<div id="adminList"></div>
+
+<button onclick="closeAdmin()">إغلاق</button>
+
+</div>
+
+<script>
+
+let products = JSON.parse(localStorage.getItem("products")) || [];
+let currentFilter="all";
+let click=0;
+
+/* SAVE */
+function save(){
+localStorage.setItem("products",JSON.stringify(products));
+}
+
+/* FILTER */
+function filter(t){
+currentFilter=t;
+render();
+}
+
+/* RENDER SHOP */
+function render(){
+
+let html="";
+
+let filtered = products.filter(p => currentFilter==="all" || p.category===currentFilter);
+
+filtered.forEach((p,i)=>{
+
+let m = p.media[0] || {src:"",type:"image"};
+
+html += `
+<div class="card" onclick="openProduct(${i})" style="cursor:pointer">
+
+<div>
+${m.type==="video"
+? `<video src="${m.src}" muted></video>`
+: `<img src="${m.src}">`}
+</div>
+
+<div class="info">
+<h3>${p.name}</h3>
+<p class="price">${p.price} €</p>
+</div>
+
+</div>
+`;
+});
+
+document.getElementById("products").innerHTML = html;
+}
+
+/* OPEN PRODUCT */
+function openProduct(i){
+
+let p = products[i];
+
+let mediaHtml = "";
+
+p.media.forEach(m=>{
+mediaHtml += `
+<div>
+${m.type==="video"
+? `<video src="${m.src}" controls></video>`
+: `<img src="${m.src}">`}
+</div>
+`;
+});
+
+document.getElementById("popupContent").innerHTML = `
+<h2>${p.name}</h2>
+<p>${p.price} €</p>
+${mediaHtml}
+
+<button onclick="order('${p.name}',${p.price})"
+style="margin-top:10px;padding:8px;background:#25D366;color:white;border:none;border-radius:5px">
+📱 Aquista
+</button>
+`;
+
+document.getElementById("popup").style.display="flex";
+}
+
+/* CLOSE POPUP */
+function closePopup(){
+document.getElementById("popup").style.display="none";
+}
+
+/* ORDER */
+function order(name,price){
+window.open("https://wa.me/393510798667?text="+encodeURIComponent(name+" - "+price+"€"));
+}
+
+/* ADMIN OPEN */
+function openAdmin(){
+click++;
+if(click>=10){
+passBox.style.display="flex";
+click=0;
+}
+}
+
+/* PASSWORD */
+function checkPass(){
+if(pass.value==="200911"){
+passBox.style.display="none";
+adminBox.style.display="flex";
+renderAdmin();
+}else{
+alert("❌ Wrong password");
+}
+}
+
+/* CLOSE ADMIN */
+function closeAdmin(){
+adminBox.style.display="none";
+}
+
+/* ADD PRODUCT */
+function addProduct(){
+
+let files = document.getElementById("mediaInput").files;
+let media=[];
+let count=0;
+
+if(files && files.length>0){
+
+for(let f of files){
+
+let reader=new FileReader();
+
+reader.onload=e=>{
+
+media.push({
+src:e.target.result,
+type:f.type.includes("video")?"video":"image"
+});
+
+count++;
+
+if(count===files.length){
+
+products.push({
+name:document.getElementById("name").value || "",
+price:document.getElementById("price").value || "",
+category:document.getElementById("category").value,
+media:media
+});
+
+save();
+render();
+renderAdmin();
+clear();
+}
+};
+
+reader.readAsDataURL(f);
+}
+
+}else{
+
+products.push({
+name:document.getElementById("name").value || "",
+price:document.getElementById("price").value || "",
+category:document.getElementById("category").value,
+media:[]
+});
+
+save();
+render();
+renderAdmin();
+clear();
+}
+}
+
+/* CLEAR */
+function clear(){
+document.getElementById("name").value="";
+document.getElementById("price").value="";
+document.getElementById("mediaInput").value="";
+}
+
+/* ADMIN RENDER */
+function renderAdmin(){
+
+let html="";
+
+products.forEach((p,i)=>{
+
+let m = p.media[0] || {src:"",type:"image"};
+
+html += `
+<div style="background:#222;color:white;padding:10px;margin:5px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+
+<div style="display:flex;gap:10px;align-items:center">
+
+${m.type==="video"
+? `<video src="${m.src}" style="width:80px;height:60px;object-fit:cover"></video>`
+: `<img src="${m.src}" style="width:80px;height:60px;object-fit:cover">`}
+
+<div>
+<b>${p.name}</b><br>
+${p.price}€
+</div>
+
+</div>
+
+<button onclick="deleteProduct(${i})"
+style="background:red;color:white;border:none;padding:6px;border-radius:5px">
+🗑 Delete
+</button>
+
+</div>
+`;
+});
+
+document.getElementById("adminList").innerHTML = html;
+}
+
+/* DELETE */
+function deleteProduct(i){
+products.splice(i,1);
+save();
+render();
+renderAdmin();
+}
+
+render();
+
+</script>
+
+</body>
+</html>
