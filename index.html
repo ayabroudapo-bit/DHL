@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALDO FOOTLCKER</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:black;
+color:white;
+}
+
+/* HEADER */
+header{
+text-align:center;
+padding:15px;
+background:#ff4757;
+}
+
+/* TABS */
+.tabs{
+text-align:center;
+margin:10px;
+}
+
+.tabs button{
+padding:6px;
+margin:3px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-size:12px;
+}
+
+/* GRID */
+.products{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:5px;
+padding:5px;
+}
+
+/* CARD */
+.card{
+background:#111;
+border-radius:8px;
+overflow:hidden;
+}
+
+/* IMAGE / VIDEO */
+.card img,.card video{
+width:100%;
+height:100px;
+object-fit:cover;
+display:block;
+}
+
+/* TEXT UNDER IMAGE */
+.card-body{
+padding:6px;
+background:#111;
+}
+
+.card-body h3{
+margin:0;
+font-size:11px;
+color:white;
+}
+
+.price{
+font-size:11px;
+color:#ff4d4d;
+margin-top:3px;
+}
+
+/* BUTTON WHATSAPP */
+button.buy{
+width:100%;
+padding:6px;
+font-size:11px;
+border:none;
+border-radius:0 0 8px 8px;
+background:#25D366;
+color:white;
+cursor:pointer;
+font-weight:bold;
+}
+
+/* ADMIN */
+.passBox,.adminBox{
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+display:none;
+justify-content:center;
+align-items:center;
+z-index:2000;
+}
+
+.passBox{background:rgba(0,0,0,0.9);}
+
+.passInner{
+background:white;
+padding:20px;
+border-radius:10px;
+color:black;
+}
+
+.adminBox{
+background:white;
+color:black;
+flex-direction:column;
+padding:15px;
+overflow:auto;
+z-index:3000;
+}
+
+input,select{
+width:100%;
+padding:6px;
+margin:5px 0;
+border-radius:6px;
+border:1px solid #ccc;
+font-size:12px;
+}
+
+/* GALLERY */
+#galleryBox{
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:black;
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+z-index:4000;
+}
+
+#thumbs{
+display:flex;
+gap:5px;
+margin-top:10px;
+overflow-x:auto;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+.products{grid-template-columns:repeat(3,1fr);}
+}
+
+@media(max-width:600px){
+.products{grid-template-columns:repeat(2,1fr);}
+}
+
+@media(max-width:400px){
+.products{grid-template-columns:repeat(1,1fr);}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>⌚ ALDO FOOTLCKER</h2>
+</header>
+
+<div class="tabs">
+<button onclick="filter('all')">Tutti</button>
+<button onclick="filter('shoes')">👟 Scarpe</button>
+<button onclick="filter('clothes')">👕 Abbigliamento</button>
+<button onclick="filter('accessories')">⌚ Orologi</button>
+<button onclick="adminClick()">Admin</button>
+</div>
+
+<div class="products" id="products"></div>
+
+<!-- PASSWORD -->
+<div class="passBox" id="passBox">
+<div class="passInner">
+<h3>Password Admin</h3>
+<input type="password" id="adminPass">
+<button onclick="verifyAdmin()">Entra</button>
+</div>
+</div>
+
+<!-- ADMIN -->
+<div class="adminBox" id="adminBox">
+
+<h2>Pannello Admin</h2>
+
+<input id="nameInput" placeholder="Nome prodotto">
+<input id="priceInput" placeholder="Prezzo">
+<input type="file" id="fileInput" accept="image/*,video/*" multiple>
+
+<select id="categoryInput">
+<option value="shoes">👟 Scarpe</option>
+<option value="clothes">👕 Abbigliamento</option>
+<option value="accessories">⌚ Orologi</option>
+</select>
+
+<button onclick="saveProduct()">Salva</button>
+<button onclick="closeAdmin()">Chiudi</button>
+
+<hr>
+<h3>Lista Prodotti</h3>
+<div id="adminList"></div>
+
+</div>
+
+<!-- GALLERY -->
+<div id="galleryBox">
+<div id="mediaContainer"></div>
+<div id="thumbs"></div>
+<button onclick="closeGallery()">Chiudi</button>
+</div>
+
+<script>
+
+const ADMIN_PASSWORD = "200911";
+
+let products = JSON.parse(localStorage.getItem("products")) || [];
+let currentFilter = "all";
+let adminClicks = 0;
+
+/* SAVE */
+function save(){
+localStorage.setItem("products", JSON.stringify(products));
+}
+
+/* FILTER */
+function filter(t){
+currentFilter = t;
+render();
+}
+
+/* RENDER */
+function render(){
+
+let html = "";
+let filtered = products.filter(p => currentFilter === "all" || p.category === currentFilter);
+
+filtered.forEach(p => {
+
+let i = products.indexOf(p);
+let m = p.media[0];
+
+html += `
+<div class="card">
+
+<div onclick="openGallery(${i})">
+${m.type === "video"
+? `<video src="${m.src}" muted></video>`
+: `<img src="${m.src}">`}
+</div>
+
+<!-- NAME + PRICE UNDER IMAGE -->
+<div class="card-body">
+<h3>${p.name}</h3>
+<p class="price">${p.price} €</p>
+</div>
+
+<!-- WHATSAPP BUTTON -->
+<button class="buy" onclick="order('${p.name}',${p.price})">
+📱 Acquista
+</button>
+
+</div>`;
+});
+
+document.getElementById("products").innerHTML = html;
+}
+
+/* SAVE PRODUCT */
+function saveProduct(){
+
+let name = nameInput.value;
+let price = priceInput.value;
+let files = fileInput.files;
+let category = categoryInput.value;
+
+if(!name || !price || files.length === 0){
+alert("Compila tutto");
+return;
+}
+
+let media = [];
+let loaded = 0;
+
+for(let f of files){
+
+let reader = new FileReader();
+
+reader.onload = e => {
+
+media.push({
+src: e.target.result,
+type: f.type.startsWith("video") ? "video" : "image"
+});
+
+loaded++;
+
+if(loaded === files.length){
+
+products.unshift({name, price:Number(price), category, media});
+
+save();
+render();
+renderAdmin();
+clearForm();
+}
+};
+
+reader.readAsDataURL(f);
+}
+}
+
+/* WHATSAPP ORDER */
+function order(name, price){
+window.open(
+"https://wa.me/393510798667?text=" + 
+encodeURIComponent("ORDINE: " + name + " - " + price + "€"),
+"_blank"
+);
+}
+
+/* ADMIN ACCESS */
+function adminClick(){
+adminClicks++;
+if(adminClicks >= 15){
+adminClicks = 0;
+passBox.style.display = "flex";
+}
+}
+
+/* LOGIN */
+function verifyAdmin(){
+if(adminPass.value === ADMIN_PASSWORD){
+passBox.style.display = "none";
+adminBox.style.display = "flex";
+renderAdmin();
+}
+}
+
+function closeAdmin(){
+adminBox.style.display = "none";
+}
+
+function clearForm(){
+nameInput.value = "";
+priceInput.value = "";
+fileInput.value = "";
+}
+
+/* ADMIN LIST */
+function renderAdmin(){
+
+let html = "";
+
+products.forEach((p,i)=>{
+
+html += `
+<div style="background:#222;color:white;padding:10px;margin:5px;border-radius:6px">
+
+<b>${p.name}</b> - ${p.price}€
+
+<br><br>
+
+<button onclick="deleteProduct(${i})" style="background:red;color:white;border:none;padding:5px;border-radius:5px">
+🗑 Elimina
+</button>
+
+</div>`;
+});
+
+adminList.innerHTML = html;
+}
+
+/* DELETE */
+function deleteProduct(i){
+if(confirm("Eliminare?")){
+products.splice(i,1);
+save();
+render();
+renderAdmin();
+}
+}
+
+/* GALLERY */
+let currentMedia = [];
+let currentIndex = 0;
+
+function openGallery(i){
+
+currentMedia = products[i].media;
+currentIndex = 0;
+
+showMedia();
+
+let t = "";
+currentMedia.forEach((m,idx)=>{
+t += m.type === "video"
+? `<video src="${m.src}" onclick="setMedia(${idx})" style="width:50px;height:50px"></video>`
+: `<img src="${m.src}" onclick="setMedia(${idx})" style="width:50px;height:50px">`;
+});
+
+thumbs.innerHTML = t;
+galleryBox.style.display = "flex";
+}
+
+function showMedia(){
+let m = currentMedia[currentIndex];
+
+mediaContainer.innerHTML =
+m.type === "video"
+? `<video src="${m.src}" controls style="max-width:90%;max-height:70%"></video>`
+: `<img src="${m.src}" style="max-width:90%;max-height:70%"></img>`;
+}
+
+function setMedia(i){
+currentIndex = i;
+showMedia();
+}
+
+function closeGallery(){
+galleryBox.style.display = "none";
+}
+
+render();
+
+</script>
+
+</body>
+</html>
